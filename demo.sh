@@ -62,7 +62,7 @@ check_env_vars
 # Pre-warm the Trivy vulnerability DB once, before the demo starts, so the two
 # in-demo scans run with --skip-db-update and avoid a live network pull.
 echo "Pre-warming Trivy vulnerability database..."
-trivy --download-db-only --quiet
+trivy image --download-db-only --quiet
 
 [[ ! -d "./vendir/demo-magic" ]] && vendir sync
 . ./vendir/demo-magic/demo-magic.sh
