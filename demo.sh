@@ -287,33 +287,33 @@ function captureSBOMCount {
   # Silently record the SBOM component count for the comparison table.
   # The count is shown to the audience in showBuildConfigSBOMint, not here.
   local log_file=$1
-  cat target/.advisor/build-config.json | jq '.sbom.components | length' > "$log_file"
+  jq '.sbom.components | length' target/.advisor/build-config.json > "$log_file"
 }
 
 function showBuildConfigKeys {
   displayMessage "Some interesting information from that step:"
-  pei "cat target/.advisor/build-config.json | jq 'keys'"
+  pei "jq 'keys' target/.advisor/build-config.json"
   echo "^^^ The top level elements in the build-config.json file"
 }
 
 function showBuildConfigGitMetadata {
-  pei "cat target/.advisor/build-config.json | jq '.\"git-metadata\"'"
+  pei "jq '.\"git-metadata\"' target/.advisor/build-config.json"
   echo "^^^ Information about the git repository"
 }
 
 function showBuildConfigSBOMint {
   displayMessage "Some interesting information from that step:"
-  pei "cat target/.advisor/build-config.json | jq '.sbom.components | length'"
+  pei "jq '.sbom.components | length' target/.advisor/build-config.json"
   echo "^^^ That's the number of components included in the SBOM"
 }
 
 function showBuildConfigSubmodules {
-  pei "cat target/.advisor/build-config.json | jq '.submodules'"
+  pei "jq '.submodules' target/.advisor/build-config.json"
   echo "^^^ The Maven coordinates (groupId:artifactId) of the artifact(s)"
 }
 
 function showBuildConfigTools {
-  pei "cat target/.advisor/build-config.json | jq '.tools'"
+  pei "jq '.tools' target/.advisor/build-config.json"
   echo "^^^ The tools and versions being used"
 }
 
