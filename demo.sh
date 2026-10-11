@@ -6,8 +6,9 @@ TEMP_DIR="upgrade-example"
 
 # Java version configuration — sourced from .sdkmanrc
 JAVA8_VERSION=$(grep '^java=8' "$(dirname "$0")/.sdkmanrc" | cut -d'=' -f2)
-JAVA17_VERSION=$(grep '^java=17' "$(dirname "$0")/.sdkmanrc" | cut -d'=' -f2)
-JAVA17_HOME="${SDKMAN_DIR:-$HOME/.sdkman}/candidates/java/$JAVA17_VERSION"
+JAVA21_VERSION=$(grep '^java=21' "$(dirname "$0")/.sdkmanrc" | cut -d'=' -f2)
+JAVA27_VERSION=$(grep '^java=27' "$(dirname "$0")/.sdkmanrc" | cut -d'=' -f2)
+JAVA27_HOME="${SDKMAN_DIR:-$HOME/.sdkman}/candidates/java/$JAVA27_VERSION"
 
 export SPRING_ADVISOR_MAPPING_CUSTOM_0_GIT_URI="https://github.com/dashaun-tanzu/advisor-mappings.git"
 export SPRING_ADVISOR_MAPPING_CUSTOM_0_GIT_PATH="mappings/"
@@ -118,14 +119,32 @@ function init {
 }
 
 function useJava8 {
-  displayMessage "Use Java 8 for Spring Boot 2.6 baseline"
-  pei "sdk use java $JAVA8_VERSION"
-  pei "java -version"
+  # Advisor's build-config step needs a JVM, but showing the Java 8 switch is
+  # a distraction, so it happens silently.
+  unset MAVEN_OPTS
+  sdk use java "$JAVA8_VERSION" > /dev/null
 }
 
-function useJava17 {
-  displayMessage "Switch to Java 17 for Spring Boot 4"
-  pei "sdk use java $JAVA17_VERSION"
+function useJava21 {
+  # Advisor's upgrade and patch steps require Java 21, but switching toolchains
+  # on screen is a distraction, so it happens silently.
+  #
+  # MAVEN_OPTS must stay empty here: the JDK 24+ suppression flags below are
+  # unrecognized options on Java 21 and would make every Maven JVM fail to
+  # start, including the ones advisor spawns internally.
+  unset MAVEN_OPTS
+  sdk use java "$JAVA21_VERSION" > /dev/null
+}
+
+function useJava27 {
+  # Maven 3.9 on JDK 24+ prints a wall of JVM warnings (jansi restricted
+  # method, guava sun.misc.Unsafe, sisu final field mutation). The flags below
+  # are the ones the warnings themselves recommend. Java 8 and 21 never print
+  # them, and the Unsafe/final-field flags are JDK 23+/24+ only, so MAVEN_OPTS
+  # is set only while Java 27 is active and unset by the other two switches.
+  displayMessage "Switch to Java 27 for Spring Boot 4"
+  export MAVEN_OPTS="--enable-native-access=ALL-UNNAMED --enable-final-field-mutation=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow"
+  pei "sdk use java $JAVA27_VERSION"
   pei "java -version"
 }
 
@@ -290,12 +309,6 @@ function captureSBOMCount {
   jq '.sbom.components | length' target/.advisor/build-config.json > "$log_file"
 }
 
-function showBuildConfigKeys {
-  displayMessage "Some interesting information from that step:"
-  pei "jq 'keys' target/.advisor/build-config.json"
-  echo "^^^ The top level elements in the build-config.json file"
-}
-
 function showBuildConfigGitMetadata {
   pei "jq '.\"git-metadata\"' target/.advisor/build-config.json"
   echo "^^^ Information about the git repository"
@@ -364,24 +377,24 @@ function statsSoFarTableColored {
   DEPS1=$(cat java8with2.6.deps)
   printf "${RED}%-38s %-25s %-10s %-10s %-15s %s${NC}\n" "Spring Boot 2.6 with Java 8" "$START1" "$DEPS1" "$CVE1" "$MEM1" "-"
 
-  MEM2=$(cat java17with4.0.log2)
+  MEM2=$(cat java27with4.0.log2)
   PERC2=$([ -n "$MEM2" ] && [ -n "$MEM1" ] && bc <<< "scale=2; 100 - ${MEM2}/${MEM1}*100" || echo "N/A")
-  START2=$(startupTime 'java17with4.0.log')
+  START2=$(startupTime 'java27with4.0.log')
   PERCSTART2=$([ -n "$START2" ] && [ -n "$START1" ] && bc <<< "scale=2; 100 - ${START2}/${START1}*100" || echo "N/A")
-  CVE2=$(cat java17with4.0.cves)
-  DEPS2=$(cat java17with4.0.deps)
-  printf "${GREEN}%-38s %-25s %-10s %-10s %-15s %s ${NC}\n" "Spring Boot 4.1 with Java 17" "$START2 ($PERCSTART2% faster)" "$DEPS2" "$CVE2" "$MEM2" "$PERC2%"
+  CVE2=$(cat java27with4.0.cves)
+  DEPS2=$(cat java27with4.0.deps)
+  printf "${GREEN}%-38s %-25s %-10s %-10s %-15s %s ${NC}\n" "Spring Boot 4.1 with Java 27" "$START2 ($PERCSTART2% faster)" "$DEPS2" "$CVE2" "$MEM2" "$PERC2%"
 
   # The patched row only exists on the second printing of this table, after
   # `advisor patch apply` has run and its measurements have been collected.
-  if [[ -f java17patched.cves ]]; then
-    MEM3=$(cat java17patched.log2)
+  if [[ -f java27patched.cves ]]; then
+    MEM3=$(cat java27patched.log2)
     PERC3=$([ -n "$MEM3" ] && [ -n "$MEM1" ] && bc <<< "scale=2; 100 - ${MEM3}/${MEM1}*100" || echo "N/A")
-    START3=$(startupTime 'java17patched.log')
+    START3=$(startupTime 'java27patched.log')
     PERCSTART3=$([ -n "$START3" ] && [ -n "$START1" ] && bc <<< "scale=2; 100 - ${START3}/${START1}*100" || echo "N/A")
-    CVE3=$(cat java17patched.cves)
-    DEPS3=$(cat java17patched.deps)
-    printf "${CYAN}%-38s %-25s %-10s %-10s %-15s %s ${NC}\n" "Spring Boot 4.1 patched with Java 17" "$START3 ($PERCSTART3% faster)" "$DEPS3" "$CVE3" "$MEM3" "$PERC3%"
+    CVE3=$(cat java27patched.cves)
+    DEPS3=$(cat java27patched.deps)
+    printf "${CYAN}%-38s %-25s %-10s %-10s %-15s %s ${NC}\n" "Spring Boot 4.1 patched with Java 27" "$START3 ($PERCSTART3% faster)" "$DEPS3" "$CVE3" "$MEM3" "$PERC3%"
   fi
 
   echo -e "${WHITE}-------------------------------------------------------------------------------------------------------------------${NC}"
@@ -398,7 +411,6 @@ cleanUp
 initSDKman
 init
 useJava8
-talkingPoint
 cloneApp
 talkingPoint
 downloadAdvisor
@@ -406,7 +418,6 @@ talkingPoint
 advisorBuildConfig
 talkingPoint
 captureSBOMCount java8with2.6.deps
-showBuildConfigKeys
 talkingPoint
 showBuildConfigGitMetadata
 talkingPoint
@@ -428,37 +439,41 @@ springBootStop
 talkingPoint
 advisorUpgradePlanGet
 talkingPoint
-useJava17
-talkingPoint
+useJava21
 advisorUpgradePlanApplySquash
+talkingPoint
+useJava27
 talkingPoint
 advisorBuildConfig
 talkingPoint
-captureSBOMCount java17with4.0.deps
-runCVECheck java17with4.0.cves
+captureSBOMCount java27with4.0.deps
+runCVECheck java27with4.0.cves
 talkingPoint
-springBootStart java17with4.0.log
+springBootStart java27with4.0.log
 talkingPoint
-validateApp "$(appPort java17with4.0.log)"
+validateApp "$(appPort java27with4.0.log)"
 talkingPoint
-showMemoryUsage "$(appPid)" java17with4.0.log2
+showMemoryUsage "$(appPid)" java27with4.0.log2
 talkingPoint
 springBootStop
 talkingPoint
 statsSoFarTableColored
 talkingPoint
+useJava21
 advisorPatchApply
+talkingPoint
+useJava27
 talkingPoint
 advisorBuildConfig
 talkingPoint
-captureSBOMCount java17patched.deps
-runCVECheck java17patched.cves
+captureSBOMCount java27patched.deps
+runCVECheck java27patched.cves
 talkingPoint
-springBootStart java17patched.log
+springBootStart java27patched.log
 talkingPoint
-validateApp "$(appPort java17patched.log)"
+validateApp "$(appPort java27patched.log)"
 talkingPoint
-showMemoryUsage "$(appPid)" java17patched.log2
+showMemoryUsage "$(appPid)" java27patched.log2
 talkingPoint
 springBootStop
 talkingPoint
