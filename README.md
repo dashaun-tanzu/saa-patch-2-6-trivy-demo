@@ -12,7 +12,7 @@ This interactive demo showcases the power of Spring Application Advisor (SAA) by
 
 ### What the Demo Does
 
-1. **Environment Setup**: Configures Java 8 and Java 17 environments using SDKMAN
+1. **Environment Setup**: Configures Java 8 and Java 27 environments using SDKMAN
 2. **Baseline Measurement**: Clones and runs a Spring Boot 2.6 application with Java 8, measuring:
    - Startup time
    - Memory usage
@@ -24,7 +24,7 @@ This interactive demo showcases the power of Spring Application Advisor (SAA) by
    - Tool versions
 4. **Automated Upgrade**: Generates and applies an upgrade plan that transforms the application to Spring Boot 4.1
 5. **Post-Upgrade Analysis**: Runs `advisor build-config get` again after the upgrade to capture the updated SBOM
-6. **Performance Validation**: Runs the upgraded application with Java 17 and measures the same metrics
+6. **Performance Validation**: Runs the upgraded application with Java 27 and measures the same metrics
 7. **First Results Comparison**: Displays the 2.6 vs 4.1 table — the major-version upgrade typically still leaves some CVEs behind
 8. **Patch-Level Upgrade**: Runs `advisor patch apply`, which moves every dependency to its latest patch version in a single pass
 9. **Post-Patch Analysis**: Runs `advisor build-config get` a third time for a fresh SBOM, rescans it with Trivy, and runs/measures the app again
@@ -42,7 +42,7 @@ This interactive demo showcases the power of Spring Application Advisor (SAA) by
 - **Security Posture**: Demonstrates CVE reduction achieved by upgrading to a modern, supported version
 - **Finishing the Job**: The major-version upgrade alone leaves residual CVEs; `advisor patch apply` closes them out by taking every dependency to its latest patch release
 - **Dependency Insight**: SBOM comparison shows how the dependency footprint changes after upgrade
-- **Modern Java Features**: Leverages Java 17 optimizations and Spring Boot 4.x enhancements
+- **Modern Java Features**: Leverages Java 27 optimizations and Spring Boot 4.x enhancements
 
 ## Prerequisites
 
@@ -50,16 +50,19 @@ This interactive demo showcases the power of Spring Application Advisor (SAA) by
   > Spring Enterprise Repository Access required
 - [SDKMan](https://sdkman.io/install)
   > i.e. `curl -s "https://get.sdkman.io" | bash`
+  > Java 8, 17, 21 and 27 (librca) are pinned in `.sdkmanrc`; install them via `sdk install java <version>`
 - [Trivy](https://github.com/aquasecurity/trivy)
   > i.e. `brew install trivy`
-- [Httpie](https://httpie.io/) needs to be in the path
+- [Httpie](https://httpie.io/) (`http` on the PATH)
   > i.e. `brew install httpie`
-- [jq](https://jqlang.github.io/jq/) needs to be in the path
+- [jq](https://jqlang.github.io/jq/) on the PATH
   > i.e. `brew install jq`
-- bc, pv, zip, unzip, gcc, zlib1g-dev
-  > i.e. `sudo apt install bc pv zip unzip gcc zlib1g-dev -y`
+- `bc`, `git`, `tar` on the PATH
+  > i.e. `brew install bc git tar`
 - [Vendir](https://carvel.dev/vendir/)
   > i.e. `brew tap carvel-dev/carvel && brew install vendir`
+
+You can run `./setup-env.sh` to check for and install all of the above.
 
 ## Required Environment Variables
 

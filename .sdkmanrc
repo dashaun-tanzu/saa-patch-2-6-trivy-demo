@@ -1,5 +1,5 @@
-java=8.0.504+1-librca
-java=17.0.20+1.1-librca
-java=21.0.12+1.1-librca
-java=27.0.0+36-librca
+java=8.0.514.0+5-librca
+java=17.0.21.1+5-librca
+java=21.0.13.1+5-librca
+java=27.0.1.1+5-librca
 maven=3.9.16
